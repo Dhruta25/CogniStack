@@ -16,12 +16,22 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Handle SQLite paths and thread settings
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+    # If the URL is sqlite:///./backend/sql_app.db but backend/ folder doesn't exist in current cwd
+    if "/./backend/" in DATABASE_URL and not os.path.exists("backend"):
+        DATABASE_URL = DATABASE_URL.replace("/./backend/", "/./")
+    elif "backend/" in DATABASE_URL and not os.path.exists("backend"):
+        DATABASE_URL = DATABASE_URL.replace("backend/", "")
 
-print("Connecting to PostgreSQL...")
+print(f"Connecting to database at {DATABASE_URL.split('@')[-1]}...")
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args=connect_args
 )
 
 SessionLocal = sessionmaker(
