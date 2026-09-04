@@ -20,9 +20,20 @@ if DATABASE_URL.startswith("postgres://"):
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
-    # If the URL is sqlite:///./backend/sql_app.db but backend/ folder doesn't exist in current cwd
-    if "/./backend/" in DATABASE_URL and not os.path.exists("backend"):
-        DATABASE_URL = DATABASE_URL.replace("/./backend/", "/./")
+    
+    # Extract file path from sqlite URI (handles sqlite:///, sqlite:////, etc.)
+    if "sqlite:////" in DATABASE_URL:
+        db_path = DATABASE_URL.replace("sqlite:////", "/")
+    elif "sqlite:///" in DATABASE_URL:
+        db_path = DATABASE_URL.replace("sqlite:///", "")
+    else:
+        db_path = DATABASE_URL.replace("sqlite:", "")
+
+    # If pointing to a non-existent directory (e.g. Mac host path /Users/... or missing subfolder)
+    parent_dir = os.path.dirname(db_path)
+    if parent_dir and not os.path.exists(parent_dir):
+        filename = os.path.basename(db_path) or "sql_app.db"
+        DATABASE_URL = f"sqlite:///./{filename}"
     elif "backend/" in DATABASE_URL and not os.path.exists("backend"):
         DATABASE_URL = DATABASE_URL.replace("backend/", "")
 
