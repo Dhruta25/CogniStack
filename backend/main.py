@@ -31,7 +31,8 @@ cors_origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "https://cogni-stack.vercel.app",
-    "https://think-forge-one.vercel.app"
+    "https://think-forge-one.vercel.app",
+    "https://cognistack-frontend.onrender.com"
 ]
 extra_origins = os.getenv("ALLOWED_ORIGINS", os.getenv("FRONTEND_URL", ""))
 if extra_origins:
