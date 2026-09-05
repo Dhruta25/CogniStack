@@ -66,10 +66,6 @@ def gemini_node(state: GraphState) -> GraphState:
 
     try:
         genai.configure(api_key=api_key)
-        try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
-        except Exception:
-            model = genai.GenerativeModel("gemini-pro")
 
         # Build multi-turn conversational history
         contents = []
@@ -83,8 +79,23 @@ def gemini_node(state: GraphState) -> GraphState:
         if not contents or contents[-1]["parts"][0] != question:
             contents.append({"role": "user", "parts": [question]})
 
-        response = model.generate_content(contents)
-        state["final_answer"] = response.text
+        models_to_try = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
+        response = None
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                res = model.generate_content(contents)
+                if res and res.text:
+                    response = res
+                    break
+            except Exception as model_err:
+                print(f"Model {model_name} failed: {model_err}")
+                continue
+
+        if response and response.text:
+            state["final_answer"] = response.text
+        else:
+            state["final_answer"] = "An error occurred while generating the response. Please try again."
         state["sources"] = []
     except Exception as e:
         state["final_answer"] = f"An error occurred while generating the response. Please try again."
@@ -124,11 +135,6 @@ def web_search_node(state: GraphState) -> GraphState:
 
     try:
         genai.configure(api_key=api_key)
-        try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-        except Exception:
-            model = genai.GenerativeModel("gemini-pro")
-
         recent_context = ""
         if chat_history:
             recent_turns = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in chat_history[-4:]]
@@ -144,8 +150,23 @@ SEARCH RESULTS:
 
 Instructions: Provide a clear, accurate, and comprehensive response. Cite source links naturally if relevant. Do not include technical system tags.
 """
-        response = model.generate_content(prompt)
-        state["final_answer"] = response.text
+        models_to_try = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
+        response = None
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                res = model.generate_content(prompt)
+                if res and res.text:
+                    response = res
+                    break
+            except Exception as model_err:
+                print(f"Model {model_name} failed in search: {model_err}")
+                continue
+
+        if response and response.text:
+            state["final_answer"] = response.text
+        else:
+            state["final_answer"] = f"Here is the information found:\n\n{results_text}"
         state["sources"] = sources
     except Exception as e:
         state["final_answer"] = f"Here is the information found:\n\n{results_text}"

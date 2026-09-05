@@ -150,11 +150,6 @@ def query_rag_application(user_id: int, rag_app_id: int, question: str, chat_his
             return {"answer": answer, "sources": sources}
 
         genai.configure(api_key=api_key)
-        try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
-        except Exception:
-            model = genai.GenerativeModel("gemini-pro")
-
         recent_context = ""
         if chat_history:
             recent_turns = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in chat_history[-4:]]
@@ -170,8 +165,23 @@ USER QUESTION:
 
 Instructions: Provide a clear, natural, and helpful response based on the provided document context. Cite source document names naturally where relevant. Do not include technical system tags.
 """
-        response = model.generate_content(prompt)
-        return {"answer": response.text, "sources": sources}
+        models_to_try = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
+        response = None
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                res = model.generate_content(prompt)
+                if res and res.text:
+                    response = res
+                    break
+            except Exception as model_err:
+                print(f"Model {model_name} failed in RAG: {model_err}")
+                continue
+
+        if response and response.text:
+            return {"answer": response.text, "sources": sources}
+        else:
+            return {"answer": f"Based on your documents ({', '.join(sources)}):\n\n{context_str[:300]}...", "sources": sources}
     except Exception as e:
         return {"answer": f"Unable to retrieve an answer at this time. Please try again.", "sources": []}
 
