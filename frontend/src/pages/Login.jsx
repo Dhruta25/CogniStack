@@ -36,7 +36,7 @@ function Login() {
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-white">Sign in to your account</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Welcome back! Access your personalized CogniStack workspace.
+          Welcome back! Access your personalized AI Chatbot workspace.
         </p>
       </div>
 

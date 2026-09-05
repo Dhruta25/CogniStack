@@ -1,5 +1,8 @@
 from typing import List, Dict, Any
-from ddgs import DDGS
+try:
+    from duckduckgo_search import DDGS
+except ImportError:
+    from ddgs import DDGS
 
 def duckduckgo_search_tool(query: str, max_results: int = 4) -> Dict[str, Any]:
     """

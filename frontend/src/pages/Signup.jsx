@@ -37,7 +37,7 @@ function Signup() {
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-white">Create a new account</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Get started with your private, secure CogniStack AI platform.
+          Get started with your private, secure AI Chatbot platform.
         </p>
       </div>
 

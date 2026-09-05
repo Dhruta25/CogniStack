@@ -1,6 +1,5 @@
 .env
-!.env.example
-
+.env.*
 __pycache__/
 *.pyc
 venv/
@@ -9,6 +8,5 @@ node_modules/
 dist/
 build/
 *.db
-*.sqlite3
-backend/storage/
-backend/package-lock.json
+storage/
+.DS_Store

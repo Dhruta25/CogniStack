@@ -21,7 +21,7 @@ if LANGSMITH_TRACING:
         os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGSMITH_API_KEY")
     if os.getenv("LANGSMITH_PROJECT"):
         os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGSMITH_PROJECT")
-    print(f"LangSmith Tracing ENABLED for project: {os.getenv('LANGSMITH_PROJECT', 'cognistack')}")
+    print(f"LangSmith Tracing ENABLED for project: {os.getenv('LANGSMITH_PROJECT', 'ai-chatbot')}")
 else:
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
@@ -57,7 +57,7 @@ def router_node(state: GraphState) -> GraphState:
 def gemini_node(state: GraphState) -> GraphState:
     question = state["question"]
     chat_history = state.get("chat_history", [])
-    api_key = os.getenv("GEMINI_API_KEY", "")
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
         state["final_answer"] = f"Please configure your API key in the settings to enable live responses."
@@ -66,6 +66,13 @@ def gemini_node(state: GraphState) -> GraphState:
 
     try:
         genai.configure(api_key=api_key)
+        try:
+            model = genai.GenerativeModel("gemini-3.6-flash")
+        except Exception:
+            try:
+                model = genai.GenerativeModel("gemini-flash-latest")
+            except Exception:
+                model = genai.GenerativeModel("gemini-pro-latest")
 
         # Build multi-turn conversational history
         contents = []
@@ -79,23 +86,8 @@ def gemini_node(state: GraphState) -> GraphState:
         if not contents or contents[-1]["parts"][0] != question:
             contents.append({"role": "user", "parts": [question]})
 
-        models_to_try = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
-        response = None
-        for model_name in models_to_try:
-            try:
-                model = genai.GenerativeModel(model_name)
-                res = model.generate_content(contents)
-                if res and res.text:
-                    response = res
-                    break
-            except Exception as model_err:
-                print(f"Model {model_name} failed: {model_err}")
-                continue
-
-        if response and response.text:
-            state["final_answer"] = response.text
-        else:
-            state["final_answer"] = "An error occurred while generating the response. Please try again."
+        response = model.generate_content(contents)
+        state["final_answer"] = response.text
         state["sources"] = []
     except Exception as e:
         state["final_answer"] = f"An error occurred while generating the response. Please try again."
@@ -127,7 +119,7 @@ def web_search_node(state: GraphState) -> GraphState:
     results_text = search_res["results_text"]
     sources = search_res["sources"]
 
-    api_key = os.getenv("GEMINI_API_KEY", "")
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         state["final_answer"] = f"Here is the information found:\n\n{results_text}"
         state["sources"] = sources
@@ -135,6 +127,14 @@ def web_search_node(state: GraphState) -> GraphState:
 
     try:
         genai.configure(api_key=api_key)
+        try:
+            model = genai.GenerativeModel("gemini-3.6-flash")
+        except Exception:
+            try:
+                model = genai.GenerativeModel("gemini-flash-latest")
+            except Exception:
+                model = genai.GenerativeModel("gemini-pro-latest")
+
         recent_context = ""
         if chat_history:
             recent_turns = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in chat_history[-4:]]
@@ -150,23 +150,8 @@ SEARCH RESULTS:
 
 Instructions: Provide a clear, accurate, and comprehensive response. Cite source links naturally if relevant. Do not include technical system tags.
 """
-        models_to_try = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
-        response = None
-        for model_name in models_to_try:
-            try:
-                model = genai.GenerativeModel(model_name)
-                res = model.generate_content(prompt)
-                if res and res.text:
-                    response = res
-                    break
-            except Exception as model_err:
-                print(f"Model {model_name} failed in search: {model_err}")
-                continue
-
-        if response and response.text:
-            state["final_answer"] = response.text
-        else:
-            state["final_answer"] = f"Here is the information found:\n\n{results_text}"
+        response = model.generate_content(prompt)
+        state["final_answer"] = response.text
         state["sources"] = sources
     except Exception as e:
         state["final_answer"] = f"Here is the information found:\n\n{results_text}"

@@ -21,31 +21,27 @@ import rag_routes
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="CogniStack API",
-    description="Full-stack CogniStack Agentic RAG & AI Platform backend",
+    title="AI Chatbot Platform API",
+    description="Full-stack AI Chatbot platform backend",
     version="1.0.0"
 )
 
-cors_origins = [
+# CORS middleware configuration
+allowed_origins_env = os.getenv("CORS_ORIGINS", "")
+origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
-    "https://cogni-stack.vercel.app",
-    "https://think-forge-one.vercel.app",
-    "https://cognistack-frontend.onrender.com"
+    "http://127.0.0.1:3000",
+    "https://think-forge-one.vercel.app"
 ]
-extra_origins = os.getenv("ALLOWED_ORIGINS", os.getenv("FRONTEND_URL", ""))
-if extra_origins:
-    for origin in extra_origins.split(","):
-        origin = origin.strip()
-        if origin and origin not in cors_origins:
-            cors_origins.append(origin)
+if allowed_origins_env:
+    origins.extend([o.strip() for o in allowed_origins_env.split(",") if o.strip()])
 
-# CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=list(set(origins)),
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +55,7 @@ app.include_router(rag_routes.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "CogniStack API is running."}
+    return {"message": "AI Chatbot API is running."}
 
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):
