@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,7 +16,6 @@ import bcrypt
 from database import get_db
 import models
 
-# Environment configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key_change_in_production_123456789")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
@@ -25,7 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
-# Pydantic Schemas
+
 class UserCreate(BaseModel):
     email: str
     username: str
@@ -49,7 +48,7 @@ class Token(BaseModel):
     token_type: str
     user: UserResponse
 
-# Helper Functions
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     pwd_bytes = plain_password.encode('utf-8')[:72]
     hash_bytes = hashed_password.encode('utf-8')
@@ -67,8 +66,7 @@ def create_access_token(data: dict, expires_delta: Optional[datetime.timedelta] 
     else:
         expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
     credentials_exception = HTTPException(
@@ -83,23 +81,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
+
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
     return user
 
-# API Routes
+
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_data: UserCreate, db: Session = Depends(get_db)):
-    # Check existing email
     if db.query(models.User).filter(models.User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email is already registered")
-    
-    # Check existing username
+
     if db.query(models.User).filter(models.User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="Username is already taken")
-    
+
     hashed_password = get_password_hash(user_data.password)
     db_user = models.User(
         email=user_data.email,
@@ -119,7 +115,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
-    
+
     access_token = create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,

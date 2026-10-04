@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 import shutil
 from typing import List, Tuple
 from langchain_community.document_loaders import (
@@ -20,13 +20,14 @@ import google.generativeai as genai
 from database import SessionLocal
 import models
 
+
 def get_faiss_directory(user_id: int, rag_app_id: int) -> str:
     base_dir = os.getenv("STORAGE_DIR", "storage")
     path = os.path.join(base_dir, "users", str(user_id), "rag_apps", str(rag_app_id), "faiss")
     os.makedirs(path, exist_ok=True)
     return path
 
-# Embeddings Class Selector
+
 def get_embeddings():
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if api_key:
@@ -35,8 +36,7 @@ def get_embeddings():
             return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
         except Exception as e:
             print(f"Warning: Failed to load GoogleGenerativeAIEmbeddings ({e}). Using HuggingFace fallback.")
-    
-    # Fallback to local HuggingFace or deterministic embeddings
+
     try:
         from langchain_community.embeddings import HuggingFaceEmbeddings
         return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -45,7 +45,7 @@ def get_embeddings():
         from langchain_community.embeddings import FakeEmbeddings
         return FakeEmbeddings(size=384)
 
-# Load file into LangChain Documents
+
 def load_document_to_lc(file_path: str, file_type: str) -> List[LCDocument]:
     file_type = file_type.lower().replace(".", "")
     try:
@@ -68,7 +68,7 @@ def load_document_to_lc(file_path: str, file_type: str) -> List[LCDocument]:
         print(f"Error loading document {file_path}: {e}")
         return []
 
-# Build and Persist FAISS Index
+
 def build_and_save_faiss_index(user_id: int, rag_app_id: int) -> Tuple[bool, str]:
     db = SessionLocal()
     try:
@@ -91,14 +91,12 @@ def build_and_save_faiss_index(user_id: int, rag_app_id: int) -> Tuple[bool, str
         if not all_lc_docs:
             return False, "Failed to extract text from documents."
 
-        # Text Splitting
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = text_splitter.split_documents(all_lc_docs)
 
         if not chunks:
             return False, "No chunks created after splitting."
 
-        # Embeddings & FAISS
         embeddings = get_embeddings()
         vector_store = FAISS.from_documents(chunks, embeddings)
 
@@ -110,11 +108,11 @@ def build_and_save_faiss_index(user_id: int, rag_app_id: int) -> Tuple[bool, str
     finally:
         db.close()
 
-# Document Knowledge Search & Synthesis
+
 def query_rag_application(user_id: int, rag_app_id: int, question: str, chat_history: list = None) -> dict:
     faiss_dir = get_faiss_directory(user_id, rag_app_id)
     index_file = os.path.join(faiss_dir, "index.faiss")
-    
+
     if not os.path.exists(index_file):
         return {
             "answer": "Documents have not been processed yet. Please click 'Process Documents' to enable document search.",
@@ -132,10 +130,9 @@ def query_rag_application(user_id: int, rag_app_id: int, question: str, chat_his
                 "sources": []
             }
 
-        # Build Context String
         context_parts = []
         sources = []
-        for i, doc in enumerate(retrieved_docs, 1):
+        for doc in retrieved_docs:
             src_name = doc.metadata.get("source_filename", "Document")
             context_parts.append(f"[{src_name}]\n{doc.page_content}")
             if src_name not in sources:
@@ -143,7 +140,6 @@ def query_rag_application(user_id: int, rag_app_id: int, question: str, chat_his
 
         context_str = "\n\n".join(context_parts)
 
-        # Prompt Synthesis
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
             answer = f"Based on your documents ({', '.join(sources)}):\n\n{context_str[:300]}..."
@@ -175,6 +171,5 @@ Instructions: Provide a clear, natural, and helpful response based on the provid
 """
         response = model.generate_content(prompt)
         return {"answer": response.text, "sources": sources}
-    except Exception as e:
-        return {"answer": f"Unable to retrieve an answer at this time. Please try again.", "sources": []}
-
+    except Exception:
+        return {"answer": "Unable to retrieve an answer at this time. Please try again.", "sources": []}

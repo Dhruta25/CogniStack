@@ -13,7 +13,7 @@ import rag_service
 
 router = APIRouter(prefix="/api/rag-apps", tags=["rag-applications"])
 
-# Pydantic Schemas
+
 class RAGAppCreate(BaseModel):
     name: str
 
@@ -37,7 +37,7 @@ class RAGChatResponse(BaseModel):
     answer: str
     sources: List[str]
 
-# Create RAG Application
+
 @router.post("", response_model=RAGAppResponse, status_code=status.HTTP_201_CREATED)
 def create_rag_app(
     app_data: RAGAppCreate,
@@ -53,7 +53,6 @@ def create_rag_app(
     db.refresh(rag_app)
     return rag_app
 
-# List RAG Applications
 @router.get("", response_model=List[RAGAppResponse])
 def list_rag_apps(
     current_user: models.User = Depends(get_current_user),
@@ -64,7 +63,6 @@ def list_rag_apps(
     ).order_by(models.RAGApplication.updated_at.desc()).all()
     return apps
 
-# Get RAG Application
 @router.get("/{app_id}", response_model=RAGAppResponse)
 def get_rag_app(
     app_id: int,
@@ -79,7 +77,6 @@ def get_rag_app(
         raise HTTPException(status_code=404, detail="RAG Application not found")
     return app_obj
 
-# Rename RAG Application
 @router.patch("/{app_id}", response_model=RAGAppResponse)
 def rename_rag_app(
     app_id: int,
@@ -100,7 +97,6 @@ def rename_rag_app(
     db.refresh(app_obj)
     return app_obj
 
-# Delete RAG Application
 @router.delete("/{app_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_rag_app(
     app_id: int,
@@ -114,7 +110,6 @@ def delete_rag_app(
     if not app_obj:
         raise HTTPException(status_code=404, detail="RAG Application not found")
 
-    # Remove physical RAG folder
     base_dir = os.getenv("STORAGE_DIR", "storage")
     app_folder = os.path.join(base_dir, "users", str(current_user.id), "rag_apps", str(app_id))
     if os.path.exists(app_folder):
@@ -127,7 +122,6 @@ def delete_rag_app(
     db.commit()
     return None
 
-# Build Vector Index Endpoint
 @router.post("/{app_id}/reindex")
 def reindex_rag_app(
     app_id: int,
@@ -149,7 +143,6 @@ def reindex_rag_app(
     db.commit()
     return {"status": "ok", "message": message}
 
-# RAG Chat Endpoint
 @router.post("/{app_id}/chat", response_model=RAGChatResponse)
 def chat_with_rag_app(
     app_id: int,

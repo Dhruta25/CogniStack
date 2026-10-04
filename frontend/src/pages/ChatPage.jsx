@@ -189,7 +189,6 @@ function ChatPage() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
-      {/* MOBILE BACKDROP */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -197,14 +196,12 @@ function ChatPage() {
         />
       )}
 
-      {/* SIDEBAR */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800/80 flex flex-col justify-between transform transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         <div className="p-4 space-y-3 flex-1 overflow-hidden flex flex-col">
-          {/* Action Buttons */}
           <div className="space-y-2">
             <button
               onClick={handleNewChat}
@@ -227,7 +224,6 @@ function ChatPage() {
             </Link>
           </div>
 
-          {/* Recent Chats */}
           <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar pt-2">
             <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Recent Conversations
@@ -297,7 +293,6 @@ function ChatPage() {
           </div>
         </div>
 
-        {/* User Footer */}
         <div className="p-4 border-t border-slate-800/80 bg-slate-900/40 flex items-center justify-between">
           <div
             onClick={() => setShowProfileModal(true)}
@@ -323,9 +318,7 @@ function ChatPage() {
         </div>
       </aside>
 
-      {/* MAIN CHAT AREA */}
       <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
-        {/* Header */}
         <header className="h-14 border-b border-slate-800/80 px-4 md:px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur">
           <div className="flex items-center gap-3">
             <button
@@ -353,11 +346,9 @@ function ChatPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </Link>
-            
           </div>
         </header>
 
-        {/* Message Thread */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {!activeChatId || messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
@@ -432,7 +423,6 @@ function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Box */}
         <div className="p-4 border-t border-slate-800/80 bg-slate-950">
           <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex gap-3">
             <textarea
@@ -461,7 +451,6 @@ function ChatPage() {
         </div>
       </main>
 
-      {/* USER PROFILE MODAL */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl">

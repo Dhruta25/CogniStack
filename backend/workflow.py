@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 from typing import TypedDict, List, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
 import google.generativeai as genai
@@ -11,7 +11,6 @@ import google.generativeai as genai
 from tools import duckduckgo_search_tool
 import rag_service
 
-# 1. LangSmith Observability Setup (Environment Controlled)
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() in ("true", "1")
 if LANGSMITH_TRACING:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -21,11 +20,11 @@ if LANGSMITH_TRACING:
         os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGSMITH_API_KEY")
     if os.getenv("LANGSMITH_PROJECT"):
         os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGSMITH_PROJECT")
-    print(f"LangSmith Tracing ENABLED for project: {os.getenv('LANGSMITH_PROJECT', 'ai-chatbot')}")
+    print(f"LangSmith Tracing ENABLED for project: {os.getenv('LANGSMITH_PROJECT', 'cognistack')}")
 else:
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
-# 2. Define LangGraph Workflow State
+
 class GraphState(TypedDict):
     question: str
     chat_history: List[Dict[str, Any]]
@@ -36,7 +35,7 @@ class GraphState(TypedDict):
     sources: List[Any]
     final_answer: str
 
-# 3. Router Node (Decides Workflow Path)
+
 def router_node(state: GraphState) -> GraphState:
     question = state["question"].lower()
     rag_app_id = state.get("rag_app_id")
@@ -53,14 +52,14 @@ def router_node(state: GraphState) -> GraphState:
 
     return state
 
-# 4. Direct AI Chat Node (Multi-turn conversational memory)
+
 def gemini_node(state: GraphState) -> GraphState:
     question = state["question"]
     chat_history = state.get("chat_history", [])
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
-        state["final_answer"] = f"Please configure your API key in the settings to enable live responses."
+        state["final_answer"] = "Please configure your API key in the settings to enable live responses."
         state["sources"] = []
         return state
 
@@ -74,27 +73,25 @@ def gemini_node(state: GraphState) -> GraphState:
             except Exception:
                 model = genai.GenerativeModel("gemini-pro-latest")
 
-        # Build multi-turn conversational history
         contents = []
-        for msg in chat_history[-10:]:  # Keep recent turns for rich context
+        for msg in chat_history[-10:]:
             role = "user" if msg.get("role") == "user" else "model"
             text_content = msg.get("content", "").strip()
             if text_content:
                 contents.append({"role": role, "parts": [text_content]})
 
-        # Ensure the latest question is at the end
         if not contents or contents[-1]["parts"][0] != question:
             contents.append({"role": "user", "parts": [question]})
 
         response = model.generate_content(contents)
         state["final_answer"] = response.text
         state["sources"] = []
-    except Exception as e:
-        state["final_answer"] = f"An error occurred while generating the response. Please try again."
+    except Exception:
+        state["final_answer"] = "An error occurred while generating the response. Please try again."
         state["sources"] = []
     return state
 
-# 5. Document Knowledge Retrieval Node
+
 def rag_node(state: GraphState) -> GraphState:
     user_id = state["user_id"]
     rag_app_id = state.get("rag_app_id")
@@ -111,7 +108,7 @@ def rag_node(state: GraphState) -> GraphState:
     state["sources"] = rag_result.get("sources", [])
     return state
 
-# 6. Web Search Node
+
 def web_search_node(state: GraphState) -> GraphState:
     question = state["question"]
     chat_history = state.get("chat_history", [])
@@ -153,17 +150,17 @@ Instructions: Provide a clear, accurate, and comprehensive response. Cite source
         response = model.generate_content(prompt)
         state["final_answer"] = response.text
         state["sources"] = sources
-    except Exception as e:
+    except Exception:
         state["final_answer"] = f"Here is the information found:\n\n{results_text}"
         state["sources"] = sources
 
     return state
 
-# 7. Route Conditional Logic Function
+
 def select_next_node(state: GraphState) -> str:
     return state["route"]
 
-# 8. Build LangGraph Workflow Graph
+
 workflow = StateGraph(GraphState)
 
 workflow.add_node("router", router_node)
@@ -187,8 +184,8 @@ workflow.add_edge("gemini", END)
 workflow.add_edge("rag", END)
 workflow.add_edge("web_search", END)
 
-# Compile LangGraph Executable
 langgraph_app = workflow.compile()
+
 
 def run_agent_workflow(question: str, user_id: int, rag_app_id: Optional[int] = None, chat_history: List[Dict[str, Any]] = None) -> Dict[str, Any]:
     initial_state: GraphState = {
@@ -201,7 +198,7 @@ def run_agent_workflow(question: str, user_id: int, rag_app_id: Optional[int] = 
         "sources": [],
         "final_answer": ""
     }
-    
+
     final_state = langgraph_app.invoke(initial_state)
     return {
         "answer": final_state["final_answer"],

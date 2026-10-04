@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cognistack-rpie.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -25,7 +25,6 @@ export const checkHealth = async () => {
   return response.data;
 };
 
-// Auth API
 export const signupApi = async (email, username, password) => {
   const response = await api.post('/api/auth/signup', { email, username, password });
   return response.data;
@@ -41,7 +40,6 @@ export const getCurrentUserApi = async () => {
   return response.data;
 };
 
-// Chat API
 export const createChatApi = async (title = 'New Chat') => {
   const response = await api.post('/api/chats', { title });
   return response.data;
@@ -121,7 +119,6 @@ export const deleteChatApi = async (chatId) => {
   return response.data;
 };
 
-// RAG Applications API
 export const createRAGAppApi = async (name) => {
   const response = await api.post('/api/rag-apps', { name });
   return response.data;

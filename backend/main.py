@@ -1,10 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env from project root (one level up from backend/)
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
-# Also load backend/.env if present
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -17,16 +16,14 @@ import chat
 import rag_storage
 import rag_routes
 
-# Create database tables automatically
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="AI Chatbot Platform API",
+    title="CogniStack API",
     description="Full-stack AI Chatbot platform backend",
     version="1.0.0"
 )
 
-# CORS middleware configuration
 allowed_origins_env = os.getenv("CORS_ORIGINS", "")
 origins = [
     "http://localhost:5173",
@@ -47,7 +44,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(rag_storage.router)
@@ -55,7 +51,7 @@ app.include_router(rag_routes.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "AI Chatbot API is running."}
+    return {"message": "CogniStack API is running."}
 
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):

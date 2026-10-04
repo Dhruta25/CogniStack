@@ -36,8 +36,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (email, username, password) => {
-    const userData = await signupApi(email, username, password);
-    // Automatically log in after signup
+    await signupApi(email, username, password);
     return await login(email, password);
   };
 

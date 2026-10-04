@@ -1,6 +1,5 @@
 import os
 import json
-import asyncio
 import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,7 +14,7 @@ from workflow import run_agent_workflow
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
 
-# Pydantic Schemas
+
 class ChatCreate(BaseModel):
     title: Optional[str] = "New Chat"
 
@@ -45,7 +44,7 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Router Endpoints
+
 @router.post("", response_model=ChatResponse, status_code=status.HTTP_201_CREATED)
 def create_chat(chat_data: ChatCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     chat = models.Chat(
@@ -82,7 +81,7 @@ def update_chat(chat_id: int, chat_data: ChatUpdate, current_user: models.User =
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    
+
     chat.title = chat_data.title
     chat.updated_at = datetime.datetime.utcnow()
     db.commit()
@@ -97,7 +96,7 @@ def delete_chat(chat_id: int, current_user: models.User = Depends(get_current_us
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    
+
     db.delete(chat)
     db.commit()
     return None
@@ -110,7 +109,7 @@ def get_messages(chat_id: int, current_user: models.User = Depends(get_current_u
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    
+
     messages = db.query(models.Message).filter(
         models.Message.chat_id == chat_id
     ).order_by(models.Message.created_at.asc()).all()
@@ -124,14 +123,12 @@ def send_message(chat_id: int, msg_data: MessageCreate, current_user: models.Use
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    
-    # 1. Fetch prior conversation history from database
+
     prior_messages = db.query(models.Message).filter(
         models.Message.chat_id == chat_id
     ).order_by(models.Message.created_at.asc()).all()
     chat_history = [{"role": m.role, "content": m.content} for m in prior_messages]
 
-    # 2. Save incoming user message
     user_msg = models.Message(
         chat_id=chat_id,
         role="user",
@@ -139,12 +136,10 @@ def send_message(chat_id: int, msg_data: MessageCreate, current_user: models.Use
     )
     db.add(user_msg)
     db.commit()
-    
-    existing_msg_count = len(prior_messages)
-    if existing_msg_count == 0 or chat.title == "New Chat":
+
+    if len(prior_messages) == 0 or chat.title == "New Chat":
         chat.title = msg_data.content[:30] + ("..." if len(msg_data.content) > 30 else "")
 
-    # 3. Execute LangGraph Agent Workflow with full chat history
     agent_res = run_agent_workflow(
         msg_data.content,
         user_id=current_user.id,
@@ -158,13 +153,12 @@ def send_message(chat_id: int, msg_data: MessageCreate, current_user: models.Use
         content=ai_content
     )
     db.add(assistant_msg)
-    
+
     chat.updated_at = datetime.datetime.utcnow()
     db.commit()
     db.refresh(assistant_msg)
     return assistant_msg
 
-# STREAMING ENDPOINT WITH CONVERSATION MEMORY & LANGGRAPH WORKFLOW
 @router.post("/{chat_id}/messages/stream")
 def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     chat = db.query(models.Chat).filter(
@@ -173,14 +167,12 @@ def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.U
     ).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    
-    # 1. Fetch prior conversation history from database
+
     prior_messages = db.query(models.Message).filter(
         models.Message.chat_id == chat_id
     ).order_by(models.Message.created_at.asc()).all()
     chat_history = [{"role": m.role, "content": m.content} for m in prior_messages]
 
-    # 2. Save incoming user message
     user_msg = models.Message(
         chat_id=chat_id,
         role="user",
@@ -188,14 +180,12 @@ def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.U
     )
     db.add(user_msg)
     db.commit()
-    
-    existing_msg_count = len(prior_messages)
-    if existing_msg_count == 0 or chat.title == "New Chat":
+
+    if len(prior_messages) == 0 or chat.title == "New Chat":
         chat.title = msg_data.content[:30] + ("..." if len(msg_data.content) > 30 else "")
         db.commit()
 
     def generate_sse():
-        # Execute LangGraph Workflow with full conversational history
         agent_res = run_agent_workflow(
             msg_data.content,
             user_id=current_user.id,
@@ -203,14 +193,13 @@ def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.U
         )
         full_text = agent_res["answer"]
 
-        # Stream chunks progressively to client
         words = full_text.split(" ")
         for i, word in enumerate(words):
             chunk = word + (" " if i < len(words) - 1 else "")
             payload = json.dumps({"chunk": chunk, "route": agent_res["route"]})
             yield f"data: {payload}\n\n"
 
-        # Save completed assistant message to DB
+        # Save completed assistant response using a fresh session (SSE generator runs outside request scope)
         db_stream = SessionLocal()
         try:
             assistant_msg = models.Message(
@@ -219,14 +208,14 @@ def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.U
                 content=full_text
             )
             db_stream.add(assistant_msg)
-            
+
             chat_obj = db_stream.query(models.Chat).filter(models.Chat.id == chat_id).first()
             if chat_obj:
                 chat_obj.updated_at = datetime.datetime.utcnow()
-            
+
             db_stream.commit()
             db_stream.refresh(assistant_msg)
-            
+
             done_payload = json.dumps({
                 "done": True,
                 "message_id": assistant_msg.id,
@@ -239,4 +228,3 @@ def stream_message(chat_id: int, msg_data: MessageCreate, current_user: models.U
             db_stream.close()
 
     return StreamingResponse(generate_sse(), media_type="text/event-stream")
-

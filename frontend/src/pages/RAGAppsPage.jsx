@@ -23,8 +23,6 @@ function RAGAppsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [indexMessage, setIndexMessage] = useState('');
-
-  // RAG Chat State
   const [messages, setMessages] = useState([]);
   const [inputQuestion, setInputQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
@@ -166,10 +164,8 @@ function RAGAppsPage() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
-      {/* SIDEBAR */}
       <aside className="w-72 bg-slate-900 border-r border-slate-800/80 flex flex-col justify-between shrink-0">
         <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <Link
               to="/"
@@ -182,7 +178,6 @@ function RAGAppsPage() {
             </span>
           </div>
 
-          {/* New App Form */}
           <form onSubmit={handleCreateApp} className="space-y-2">
             <input
               type="text"
@@ -201,7 +196,6 @@ function RAGAppsPage() {
             </button>
           </form>
 
-          {/* Collections List */}
           <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
             <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Document Collections
@@ -242,11 +236,9 @@ function RAGAppsPage() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
         {activeApp ? (
           <>
-            {/* App Top Bar */}
             <header className="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -284,16 +276,13 @@ function RAGAppsPage() {
               </div>
             )}
 
-            {/* Split Screen: Documents Manager & Document Chat */}
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden p-6 gap-6">
-              {/* Document Manager Panel (4 columns) */}
               <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col space-y-4 overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <h3 className="text-sm font-bold text-white">Uploaded Documents</h3>
                   <span className="text-xs text-slate-400">{documents.length} files</span>
                 </div>
 
-                {/* Upload Button */}
                 <label className="w-full py-3 border-2 border-dashed border-slate-700 hover:border-indigo-500/60 rounded-xl bg-slate-950/50 flex flex-col items-center justify-center cursor-pointer transition">
                   <svg className="w-6 h-6 text-slate-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -311,7 +300,6 @@ function RAGAppsPage() {
                   />
                 </label>
 
-                {/* Documents List */}
                 <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                   {documents.length === 0 ? (
                     <p className="text-xs text-slate-500 text-center py-6 italic">No documents uploaded yet.</p>
@@ -342,13 +330,11 @@ function RAGAppsPage() {
                 </div>
               </div>
 
-              {/* Document Chat Panel (8 columns) */}
               <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden">
                 <div className="p-4 border-b border-slate-800 bg-slate-950/40">
                   <h3 className="text-sm font-bold text-white">Document Q&amp;A Chat</h3>
                 </div>
 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-2 text-slate-500">
@@ -409,7 +395,6 @@ function RAGAppsPage() {
                   )}
                 </div>
 
-                {/* Input */}
                 <div className="p-4 border-t border-slate-800 bg-slate-950">
                   <form onSubmit={handleSendQuestion} className="flex gap-3">
                     <input
